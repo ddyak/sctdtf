@@ -5,9 +5,12 @@
 import numpy as np
 import unittest
 
+# UNIT = 10**-3
+UNIT = 1
+
 MASS_DICT = {
-    'K0_S': 497.611,
-    'pi+' : 139.57018,
+    'K0_S': 497.611 * UNIT,
+    'pi+' : 139.57018 * UNIT,
     # 'pi0' : 134.9766,
     # 'D0 ' : 1865.84,
 }
@@ -118,15 +121,17 @@ class TestGenerator(unittest.TestCase):
 
 def resolution_plot():
     import matplotlib.pyplot as plt
+    from matplotlib.ticker import MultipleLocator
     mpi = MASS_DICT['pi+']
-    cov = np.diag([3,3,5])
-    N = 10**4
+    cov = np.diag([3,3,5])**2
+    N = 10**5
     p4pip, p4pim = [p3top4(p, mpi) for p in generate(N, cov)]
     x, bins, e = make_hist(mass(p4pip + p4pim))
 
     plt.figure(figsize=(6,5))
     plt.errorbar(x, bins, e, linestyle='none', marker='.', markersize=4)
-    plt.grid()
+    plt.minorticks_on()
+    plt.grid(which='both')
     plt.xlabel(r'$m(\pi^+\pi^-)$ (MeV)', fontsize=16)
     plt.tight_layout()
     plt.savefig('mpipi.pdf')

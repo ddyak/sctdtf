@@ -5,7 +5,7 @@
 import numpy as np
 from scipy.linalg import block_diag
 
-from event_generator import MASS_DICT, p3top4, mass_sq, mass, make_hist
+from event_generator import UNIT, MASS_DICT, p3top4, mass_sq, mass, make_hist
 
 mksSq = MASS_DICT['K0_S']**2
 
@@ -28,15 +28,15 @@ def chi2(p3pip0, p3pim0, p4pip, p4pim, p4k, covInv, lam):
            2.*lam[:, 0]  * gmass(p4pip, p4pim) +\
            2.*np.sum(lam[:, 1:] * gmomentum(p4pip, p4pim, p4k), axis=-1)
 
-def gradient(p4pip, p4pim, p4k, covInv, lam):
+def gradient(p3pip0, p3pim0, p4pip, p4pim, p4k, covInv, lam):
     """ 15D Gradient """
     lamm, lame, lamp =\
         lam[:, 0].reshape(-1, 1), lam[:, 1].reshape(-1, 1), lam[:, 2:]
     (epip, p3pip), (epim, p3pim), (ek, p3k) =\
         [(x[:, 0].reshape(-1, 1), x[:, 1:]) for x in [p4pip, p4pim, p4k]]
 
-    ddp1 = np.dot(p3pip, covInv) - lame*p3pip/epip - lamp
-    ddp2 = np.dot(p3pim, covInv) - lame*p3pim/epim - lamp
+    ddp1 = np.dot(p3pip - p3pip0, covInv) - lame*p3pip/epip - lamp
+    ddp2 = np.dot(p3pim - p3pim0, covInv) - lame*p3pim/epim - lamp
     ddek = -2*lamm*ek  + lame
     ddpk = +2*lamm*p3k + lamp
     dlamm = gmass(p4pip, p4pim)
@@ -96,7 +96,7 @@ def fit_to_ks(p3pip, p3pim, cov, nit=5):
     def calc(xi):
         p3pip, p3pim, p4ks, lam = xi[:, :3], xi[:, 3:6], xi[:, 6:10], xi[:, 10:]
         p4pip, p4pim = [p3top4(p, mpi) for p in [p3pip, p3pim]]
-        grad = gradient(p4pip, p4pim, p4ks, covInv, lam)
+        grad = gradient(p3pip0, p3pim0, p4pip, p4pim, p4ks, covInv, lam)
         hess = hessian(p4pip, p4pim, p4ks, covInv, lam)
         return (p4pip, p4pim, grad, hess)
 
@@ -112,13 +112,13 @@ def fit_to_ks(p3pip, p3pim, cov, nit=5):
         print('Iteration {}'.format(iter))
         p4pip, p4pim, grad, hess = calc(xi)
         save_log(xi, p4pip, p4pim, p4ks, lam, grad, hess)
-        print_summary(p4pip, p4pim, grad, hess)
+        # print_summary(p4pip, p4pim, grad, hess)
         xi -= np.einsum('kij, ki -> kj', np.linalg.inv(hess), grad)
 
     p4pip, p4pim, grad, hess = calc(xi)
     save_log(xi, p4pip, p4pim, p4ks, lam, grad, hess)
     print('Final')
-    print_summary(p4pip, p4pim, grad, hess)
+    # print_summary(p4pip, p4pim, grad, hess)
 
     np.savez('logs/fitres',
         chi2=logs['chi2'],
@@ -146,13 +146,13 @@ def generated_mass(p3pip, p3pim):
 
 def main():
     from event_generator import generate
-    cov = np.diag([3,3,5])
+    cov = np.diag([3,3,5])**2 * UNIT**2
     N = 1
     p3pip, p3pim = generate(N, cov)
 
     generated_mass(p3pip, p3pim)
-    logs = fit_to_ks(p3pip, p3pim, cov, nit=5)
-    print(logs['chi2'])
+    _ = fit_to_ks(p3pip, p3pim, cov, nit=5)
+    # print(logs['chi2'])
 
 if __name__ == '__main__':
     main()
