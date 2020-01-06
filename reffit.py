@@ -19,10 +19,11 @@ def chi2(p3pip0, p3pim0, p4pip, p4pim, p4k, covInv, lam):
     """ Calculates chi2 with mass hypothesys and momentum conservation """
     dp3pip = p4pip[:, 1:] - p3pip0
     dp3pim = p4pim[:, 1:] - p3pim0
+    lamm, lamp = lam[:, 0], lam[:, 1:]
     return np.einsum('...i, ij, ...j -> ...', dp3pip, covInv, dp3pip) +\
            np.einsum('...i, ij, ...j -> ...', dp3pim, covInv, dp3pim) +\
-           2.*lam[:, 0]  * gmass(p4pip, p4pim) +\
-           2.*np.sum(lam[:, 1:] * gmomentum(p4pip, p4pim, p4k), axis=-1)
+           2.*lamm * gmass(p4pip, p4pim) +\
+           2.*np.sum(lamp * gmomentum(p4pip, p4pim, p4k), axis=-1)
 
 def gradient(p3pip0, p3pim0, p4pip, p4pim, p4k, covInv, lam):
     """ 15D Gradient """
@@ -57,11 +58,11 @@ def hessian(p4pip, p4pim, p4k, covInv, lam):
     hess[:, 0:3,  0:3] = covInv + dphess(epip, p3overEpip)
     hess[:, 3:6,  3:6] = covInv + dphess(epim, p3overEpim)
     hess[:,6:10, 6:10] = 2*np.einsum('ki, ij -> kij', lamm, np.diag([-1, 1, 1 ,1]))
-    hess[:, 10,     7] = hess[:,    7,  10] = -2*ek.ravel()  # dlamm dek
-    hess[:, 10,  8:11] = hess[:, 8:11,  10] =  2*p3k         # dlamm dpk
-    hess[:, 11,   0:3] = hess[:, 0:3,   11] = -p3pip / epip  # dp1 dlam_eps
-    hess[:, 11,   3:6] = hess[:, 3:6,   11] = -p3pim / epim  # dp2 dlam_eps
-    hess[:, 11:, 7:11] = hess[:, 7:11, 11:] =  np.eye(4)     # dek dlam_eps
+    hess[:,  10,    6] = hess[:,   6,   10] = -2*ek.ravel()  # dlamm dek
+    hess[:,  10, 7:10] = hess[:,7:10,   10] =  2*p3k         # dlamm dpk
+    hess[:,  11,  0:3] = hess[:, 0:3,   11] = -p3pip / epip  # dp1 dlam_eps
+    hess[:,  11,  3:6] = hess[:, 3:6,   11] = -p3pim / epim  # dp2 dlam_eps
+    hess[:, 11:, 6:10] = hess[:,6:10,  11:] =  np.eye(4)     # dek dlam_eps
     hess[:, 12:,  0:3] = hess[:, 0:3,  12:] = -np.eye(3)     # dlam_p dp1
     hess[:, 12:,  3:6] = hess[:, 3:6,  12:] = -np.eye(3)     # dlam_p dp2
 
