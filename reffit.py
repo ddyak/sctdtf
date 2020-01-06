@@ -15,15 +15,12 @@ def gmomentum(p4pip, p4pim, p4k):
     """ Momentum conservation constraint """
     return p4k - p4pip - p4pim
 
-def chi2(p3pip0, p3pim0, p4pip, p4pim, p4k, covInv, lam):
+def chi2(p3pip0, p3pim0, p4pip, p4pim, covInv):
     """ Calculates chi2 with mass hypothesys and momentum conservation """
     dp3pip = p4pip[:, 1:] - p3pip0
     dp3pim = p4pim[:, 1:] - p3pim0
-    lamm, lamp = lam[:, 0], lam[:, 1:]
     return np.einsum('...i, ij, ...j -> ...', dp3pip, covInv, dp3pip) +\
-           np.einsum('...i, ij, ...j -> ...', dp3pim, covInv, dp3pim) +\
-           2.*lamm * gmass(p4pip, p4pim) +\
-           2.*np.sum(lamp * gmomentum(p4pip, p4pim, p4k), axis=-1)
+           np.einsum('...i, ij, ...j -> ...', dp3pim, covInv, dp3pim)# +\
 
 def gradient(p3pip0, p3pim0, p4pip, p4pim, p4k, covInv, lam):
     """ 15D Gradient """
@@ -83,8 +80,8 @@ def fit_to_ks(p3pip, p3pim, cov, nit=5):
     lam = 1*np.ones((N, 5))
 
     logs = {key : [] for key in ['chi2', 'xi', 'grad', 'hess', 'det']}
-    def save_log(xi, p4pip, p4pim, p4ks, lam, grad, hess):
-        logs['chi2'].append(chi2(p3pip0, p3pim0, p4pip, p4pim, p4ks, covInv, lam))
+    def save_log(xi, p4pip, p4pim, grad, hess):
+        logs['chi2'].append(chi2(p3pip0, p3pim0, p4pip, p4pim, covInv))
         logs['xi'].append(xi.copy())
         logs['grad'].append(grad.copy())
         logs['hess'].append(hess.copy())
@@ -101,11 +98,11 @@ def fit_to_ks(p3pip, p3pim, cov, nit=5):
     for iter in range(nit):
         print('Iteration {}'.format(iter))
         p4pip, p4pim, grad, hess = calc(xi)
-        save_log(xi, p4pip, p4pim, p4ks, lam, grad, hess)
+        save_log(xi, p4pip, p4pim, grad, hess)
         xi -= np.einsum('kij, ki -> kj', np.linalg.inv(hess), grad)
 
     p4pip, p4pim, grad, hess = calc(xi)
-    save_log(xi, p4pip, p4pim, p4ks, lam, grad, hess)
+    save_log(xi, p4pip, p4pim, grad, hess)
 
     np.savez('logs/fitres',
         chi2=logs['chi2'],
@@ -120,10 +117,10 @@ def fit_to_ks(p3pip, p3pim, cov, nit=5):
 def main():
     from event_generator import generate
     cov = np.diag([3,3,5])**2 * UNIT**2
-    N = 1
+    N = 10**5
     p3pip, p3pim = generate(N, cov)
 
-    _ = fit_to_ks(p3pip, p3pim, cov, nit=5)
+    _ = fit_to_ks(p3pip, p3pim, cov, nit=10)
 
 if __name__ == '__main__':
     main()
