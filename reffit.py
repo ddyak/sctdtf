@@ -7,11 +7,9 @@ from scipy.linalg import block_diag
 
 from event_generator import UNIT, MASS_DICT, p3top4, mass_sq, mass, make_hist
 
-mksSq = MASS_DICT['K0_S']**2
-
 def gmass(p4pip, p4pim):
     """ Mass constraint """
-    return mksSq - mass_sq(p4pip + p4pim)
+    return MASS_DICT['K0_S']**2 - mass_sq(p4pip + p4pim)
 
 def gmomentum(p4pip, p4pim, p4k):
     """ Momentum conservation constraint """
@@ -21,8 +19,6 @@ def chi2(p3pip0, p3pim0, p4pip, p4pim, p4k, covInv, lam):
     """ Calculates chi2 with mass hypothesys and momentum conservation """
     dp3pip = p4pip[:, 1:] - p3pip0
     dp3pim = p4pim[:, 1:] - p3pim0
-    # return np.dot(np.dot(dp3pip, covInv), dp3pip.T) +\
-    #        np.dot(np.dot(dp3pim, covInv), dp3pim.T) +\
     return np.einsum('...i, ij, ...j -> ...', dp3pip, covInv, dp3pip) +\
            np.einsum('...i, ij, ...j -> ...', dp3pim, covInv, dp3pim) +\
            2.*lam[:, 0]  * gmass(p4pip, p4pim) +\
@@ -100,25 +96,15 @@ def fit_to_ks(p3pip, p3pim, cov, nit=5):
         hess = hessian(p4pip, p4pim, p4ks, covInv, lam)
         return (p4pip, p4pim, grad, hess)
 
-    def print_summary(p4pip, p4pim, grad, hess):
-        print('p4pip\n{}'.format(p4pip[0]))
-        print('p4pim\n{}'.format(p4pim[0]))
-        print('grad\n{}'.format(grad[0]))
-        print('hess\n{}'.format(hess[0].diagonal()))
-        print('invHess\n{}'.format(np.linalg.inv(hess[0]).diagonal()))
-
     xi = np.column_stack([p3pip, p3pim, p4ks, lam])
     for iter in range(nit):
         print('Iteration {}'.format(iter))
         p4pip, p4pim, grad, hess = calc(xi)
         save_log(xi, p4pip, p4pim, p4ks, lam, grad, hess)
-        # print_summary(p4pip, p4pim, grad, hess)
         xi -= np.einsum('kij, ki -> kj', np.linalg.inv(hess), grad)
 
     p4pip, p4pim, grad, hess = calc(xi)
     save_log(xi, p4pip, p4pim, p4ks, lam, grad, hess)
-    print('Final')
-    # print_summary(p4pip, p4pim, grad, hess)
 
     np.savez('logs/fitres',
         chi2=logs['chi2'],
@@ -130,29 +116,13 @@ def fit_to_ks(p3pip, p3pim, cov, nit=5):
 
     return logs
 
-def generated_mass(p3pip, p3pim):
-    import matplotlib.pyplot as plt
-    p4pip, p4pim = [p3top4(p, MASS_DICT['pi+']) for p in[p3pip, p3pim]]
-    m = mass(p4pip + p4pim)
-    print(np.mean(m), np.std(m))
-    x, bins, e = make_hist(m)
-
-    plt.figure(figsize=(6,5))
-    plt.errorbar(x, bins, e, linestyle='none', marker='.', markersize=4)
-    plt.grid()
-    plt.tight_layout()
-    plt.xlabel(r'$m(\pi^+\pi^-)$ (MeV)', fontsize=16)
-    plt.show()
-
 def main():
     from event_generator import generate
     cov = np.diag([3,3,5])**2 * UNIT**2
     N = 1
     p3pip, p3pim = generate(N, cov)
 
-    generated_mass(p3pip, p3pim)
     _ = fit_to_ks(p3pip, p3pim, cov, nit=5)
-    # print(logs['chi2'])
 
 if __name__ == '__main__':
     main()

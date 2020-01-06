@@ -45,6 +45,9 @@ def read_log(niter):
         print('\nHessian iter {}'.format(iter))
         print_hessian(data['hess'][iter][0])
 
+        print('\nInverse Hessian iter {}'.format(iter))
+        print_hessian(np.linalg.inv(data['hess'][iter][0]))
+
         print('\nGradient iter {}'.format(iter))
         print_xi(data['grad'][iter][0])
 
