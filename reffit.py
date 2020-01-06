@@ -104,23 +104,25 @@ def fit_to_ks(p3pip, p3pim, cov, nit=5):
     p4pip, p4pim, grad, hess = calc(xi)
     save_log(xi, p4pip, p4pim, grad, hess)
 
-    np.savez('logs/fitres',
-        chi2=logs['chi2'],
-          xi=logs['xi'],
-        grad=logs['grad'],
-        hess=logs['hess'],
-         det=logs['det'],
-    )
-
     return logs
 
 def main():
     from event_generator import generate
     cov = np.diag([3,3,5])**2 * UNIT**2
     N = 10**5
-    p3pip, p3pim = generate(N, cov)
+    (p3pip, p3pim), p3pipGen, p3pimGen = generate(N, cov)
 
-    _ = fit_to_ks(p3pip, p3pim, cov, nit=10)
+    logs = fit_to_ks(p3pip, p3pim, cov, nit=10)
+    np.savez('logs/fitres',
+        chi2=logs['chi2'],
+          xi=logs['xi'],
+        grad=logs['grad'],
+        hess=logs['hess'],
+         det=logs['det'],
+      pipgen=p3pipGen,
+      pimgen=p3pimGen,
+         cov=cov
+    )
 
 if __name__ == '__main__':
     main()
