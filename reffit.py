@@ -15,12 +15,14 @@ def gmomentum(p4pip, p4pim, p4k):
     """ Momentum conservation constraint """
     return p4k - p4pip - p4pim
 
+def chi2_item(r, cInv):
+    """ rT cInv r """
+    return np.einsum('...i, ij, ...j -> ...', r, cInv, r)
+
 def chi2(p3pip0, p3pim0, p4pip, p4pim, covInv):
-    """ Calculates chi2 with mass hypothesys and momentum conservation """
-    dp3pip = p4pip[:, 1:] - p3pip0
-    dp3pim = p4pim[:, 1:] - p3pim0
-    return np.einsum('...i, ij, ...j -> ...', dp3pip, covInv, dp3pip) +\
-           np.einsum('...i, ij, ...j -> ...', dp3pim, covInv, dp3pim)# +\
+    """ Calculates chi2 """
+    return chi2_item(p4pip[:, 1:] - p3pip0, covInv) +\
+           chi2_item(p4pim[:, 1:] - p3pim0, covInv)
 
 def gradient(p3pip0, p3pim0, p4pip, p4pim, p4k, covInv, lam):
     """ 15D Gradient """
