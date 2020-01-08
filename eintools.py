@@ -76,9 +76,9 @@ class TestMtx(unittest.TestCase):
         self.assertTrue(np.allclose(mtxab(mtxabt(A,B), C), mtxabtc(A, B, C)))
 
     def test_mtxabat(self):
-        N, dim = 10, 4
-        A = np.random.rand(N, dim, dim)
-        B = np.random.rand(N, dim, dim)
+        N, dim1, dim2 = 10, 4, 5
+        A = np.random.rand(N, dim1, dim2)
+        B = np.random.rand(N, dim2, dim2)
         self.assertTrue(np.allclose(mtxabt(mtxab(A,B), A), mtxabat(A, B)))
 
 if __name__ == '__main__':
