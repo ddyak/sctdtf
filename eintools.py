@@ -1,6 +1,7 @@
 """ Helper functions for matrix multiplication """
 
 import numpy as np
+import unittest
 
 VERB = False
 
@@ -26,10 +27,60 @@ def mtxabtc(A, B, C):
     """ AB^TC utility function """
     if VERB:
         print('mtxabtc {} {} {}'.format(A.shape, B.shape, C.shape))
-    return np.einsum('kij, kli, klm -> kjm', A, B, C)
+    return np.einsum('kij, klj, klm -> kim', A, B, C)
 
 def mtxabat(A, B):
     """ ABA^T utility function """
     if VERB:
         print('mtxabat {} vs {}'.format(A.shape, B.shape))
     return np.einsum('kij, kjl, kml -> kim', A, B, A)
+
+class TestMtx(unittest.TestCase):
+    def test_mtxab(self):
+        N, dim = 10, 6
+        A = np.random.rand(N, dim, dim)
+        B = np.array([np.linalg.inv(it) for it in A])
+        expected = np.array([np.eye(dim) for _ in range(N)])
+        self.assertTrue(np.allclose(expected, mtxab(A, B)))
+
+        dim1, dim2, dim3 = 4, 5, 6
+        A = np.random.rand(N, dim1, dim2)
+        B = np.random.rand(N, dim2, dim3)
+        self.assertTrue((N, dim1, dim3) == mtxab(A, B).shape)
+
+    def test_mtxabt(self):
+        N, dim = 10, 6
+        A = np.random.rand(N, dim, dim)
+        B = np.array([np.linalg.inv(it.T) for it in A])
+        expected = np.array([np.eye(dim) for _ in range(N)])
+        self.assertTrue(np.allclose(expected, mtxabt(A, B)))
+
+        dim1, dim2, dim3 = 4, 5, 6
+        A = np.random.rand(N, dim1, dim2)
+        B = np.random.rand(N, dim3, dim2)
+        self.assertTrue((N, dim1, dim3), mtxabt(A, B).shape)
+
+    def test_mtxabc(self):
+        N, dim1, dim2, dim3, dim4 = 10, 4, 5, 6, 7
+        A = np.random.rand(N, dim1, dim2)
+        B = np.random.rand(N, dim2, dim3)
+        C = np.random.rand(N, dim3, dim4)
+        self.assertTrue(np.allclose(mtxab(mtxab(A,B), C), mtxabc(A, B, C)))
+        self.assertTrue(np.allclose(mtxab(A, mtxab(B,C)), mtxabc(A, B, C)))
+
+    def test_mtxabtc(self):
+        N, dim1, dim2, dim3, dim4 = 10, 4, 5, 6, 7
+        A = np.random.rand(N, dim1, dim2)
+        B = np.random.rand(N, dim3, dim2)
+        C = np.random.rand(N, dim3, dim4)
+        self.assertTrue(np.allclose(mtxab(mtxabt(A,B), C), mtxabtc(A, B, C)))
+
+    def test_mtxabat(self):
+        N, dim = 10, 4
+        A = np.random.rand(N, dim, dim)
+        B = np.random.rand(N, dim, dim)
+        self.assertTrue(np.allclose(mtxabt(mtxab(A,B), A), mtxabat(A, B)))
+
+if __name__ == '__main__':
+    # VERB = True
+    unittest.main()
