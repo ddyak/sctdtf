@@ -15,28 +15,30 @@ def plot_ks0_mass(xi):
         mean, std = np.mean(m), np.std(m)
         m = m[np.abs(m - mean) < 5.*std]
     print(m.shape, np.mean(m), np.std(m))
-    # x, bins, e = make_hist(m, range=[497.601, 498.621])
+    if np.std(m) < 0.000001:
+        return
+    x, bins, e = make_hist(m, range=[497, 498])
 
-    # plt.figure(figsize=(6,5))
-    # plt.errorbar(x, bins, e, linestyle='none', marker='.', markersize=4)
-    # plt.grid()
-    # plt.xlabel(r'$m(\pi^+\pi^-)$ (MeV)', fontsize=16)
-    # plt.tight_layout()
+    plt.figure(figsize=(6,5))
+    plt.errorbar(x, bins, e, linestyle='none', marker='.', markersize=4)
+    plt.grid()
+    plt.xlabel(r'$m(\pi^+\pi^-)$ (MeV)', fontsize=16)
+    plt.tight_layout()
     # plt.show()
 
 def plot_chi2(chisq):
-    chisq = chisq[~np.isnan(chisq)]
-    rng = [0, 10]
-    nbins = 100
-    for _ in range(5):
-        mean, std = np.mean(chisq), np.std(chisq)
-        chisq = chisq[np.abs(chisq - mean) < 5.*std]
+    chisq = chisq[~np.isnan(chisq) & (chisq<100)]
+    rng = [0, 50]
+    nbins = 50
+    # for _ in range(5):
+    #     mean, std = np.mean(chisq), np.std(chisq)
+    #     chisq = chisq[np.abs(chisq - mean) < 3.*std]
     print(chisq.shape, chisq.mean(), chisq.std())
     x, bins, e = make_hist(chisq, range=rng, nbins=nbins, density=False)
 
     plt.figure(figsize=(6,5))
     plt.errorbar(x, bins, e, linestyle='none', marker='.', markersize=4)
-    norm = chisq.shape[0]*(rng[1]-rng[0])/nbins
+    norm = chisq.shape[0]*(rng[1]-rng[0])/nbins if rng is not None else 1
     plt.plot(x, norm*chi2.pdf(x, 1))
     plt.grid()
     plt.xlabel(r'$\chi^2$', fontsize=16)

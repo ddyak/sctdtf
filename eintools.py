@@ -35,6 +35,14 @@ def mtxabat(A, B):
         print('mtxabat {} vs {}'.format(A.shape, B.shape))
     return np.einsum('kij, kjl, kml -> kim', A, B, A)
 
+def chi2_item(r, cInv):
+    """ rT cInv r """
+    if VERB:
+        print('chi2_item {} {}'.format(r.shape, cInv.shape))
+    if len(cInv.shape) == 3:
+        return np.einsum('ki, kij, kj -> k', r, cInv, r)
+    return np.einsum('ki, ij, kj -> k', r, cInv, r)
+
 class TestMtx(unittest.TestCase):
     def test_mtxab(self):
         N, dim = 10, 6

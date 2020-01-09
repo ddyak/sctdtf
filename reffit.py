@@ -6,6 +6,7 @@ import numpy as np
 from scipy.linalg import block_diag
 
 from event_generator import UNIT, MASS_DICT, p3top4, mass_sq, mass, make_hist
+import eintools as et
 
 def gmass(p4pip, p4pim):
     """ Mass constraint """
@@ -15,14 +16,10 @@ def gmomentum(p4pip, p4pim, p4k):
     """ Momentum conservation constraint """
     return p4k - p4pip - p4pim
 
-def chi2_item(r, cInv):
-    """ rT cInv r """
-    return np.einsum('...i, ij, ...j -> ...', r, cInv, r)
-
 def chi2(p3pip0, p3pim0, p4pip, p4pim, covInv):
     """ Calculates chi2 """
-    return chi2_item(p4pip[:, 1:] - p3pip0, covInv) +\
-           chi2_item(p4pim[:, 1:] - p3pim0, covInv)
+    return et.chi2_item(p4pip[:, 1:] - p3pip0, covInv) +\
+           et.chi2_item(p4pim[:, 1:] - p3pim0, covInv)
 
 def gradient(p3pip0, p3pim0, p4pip, p4pim, p4k, covInv, lam):
     """ 15D Gradient """
@@ -64,7 +61,6 @@ def hessian(p4pip, p4pim, p4k, covInv, lam):
     hess[:, 11:, 6:10] = hess[:,6:10,  11:] =  np.eye(4)     # dek dlam_eps
     hess[:, 12:,  0:3] = hess[:, 0:3,  12:] = -np.eye(3)     # dlam_p dp1
     hess[:, 12:,  3:6] = hess[:, 3:6,  12:] = -np.eye(3)     # dlam_p dp2
-
     return 2*hess
 
 def fit_to_ks(p3pip, p3pim, cov, nit=5):
@@ -111,7 +107,7 @@ def fit_to_ks(p3pip, p3pim, cov, nit=5):
 def main():
     from event_generator import generate
     cov = np.diag([3,3,5])**2 * UNIT**2
-    N = 10**5
+    N = 10**4
     (p3pip, p3pim), p3pipGen, p3pimGen = generate(N, cov)
 
     logs = fit_to_ks(p3pip, p3pim, cov, nit=10)
