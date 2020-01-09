@@ -51,15 +51,14 @@ def unpack(xi):
         epim = p4pim[:, 0].reshape(-1, 1)
         return (p3pip, p3pim, p4ks, p4pip, p4pim, epip, epim)
 
-def apply_meas(Hk, rk, cov, Ck):
+def apply_meas(Hk, rk, cov, Ck, full=True):
     """ Apply measurement constraint """
     Rlk = predicted_resid_uncert(cov, Hk, Ck)
     RlkInv = np.linalg.inv(Rlk)
     Kk = gain(Ck, Hk, RlkInv)
-    # return (xi_upd(Kk, rk), covariance_normal(Ck, Kk, Hk, Rlk), et.chi2_item(rk, RlkInv))
-    ncov = np.zeros((Ck.shape[0], *cov.shape))
-    ncov[:] = cov
-    return (xi_upd(Kk, rk), covariance_full(Ck, Kk, Hk, ncov), et.chi2_item(rk, RlkInv))
+    if full:
+        return (xi_upd(Kk, rk), covariance_full(Ck, Kk, Hk, cov), et.chi2_item(rk, RlkInv))
+    return (xi_upd(Kk, rk), covariance_normal(Ck, Kk, Hk, Rlk), et.chi2_item(rk, RlkInv))
 
 def pfit_to_ks(p3pip, p3pim, cov, nit=5, gpit=3, gmit=3):
     """ Progressive mass-constrained fit for Ks0 -> pi+ pi- """
@@ -131,9 +130,7 @@ def pfit_to_ks(p3pip, p3pim, cov, nit=5, gpit=3, gmit=3):
         _, _, p4ks, p4pip, p4pim, _, _ = unpack(xi)
         logs['xi'].append(xi.copy())
         logs['cov'].append(Ck.copy())
-        ncovInv = np.zeros((N, *cov.shape))
-        ncovInv[:] = covInv
-        logs['chi2v0'].append(rf.chi2(p3pip0, p3pim0, p4pip, p4pim, ncovInv))
+        logs['chi2v0'].append(rf.chi2(p3pip0, p3pim0, p4pip, p4pim, covInv))
         logs['chi2'].append(chi2)
         logs['mk'].append(eg.mass(p4ks))
     # print('Final Ck\n{}'.format(Ck[0]))

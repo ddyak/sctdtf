@@ -33,7 +33,9 @@ def mtxabat(A, B):
     """ ABA^T utility function """
     if VERB:
         print('mtxabat {} vs {}'.format(A.shape, B.shape))
-    return np.einsum('kij, kjl, kml -> kim', A, B, A)
+    if len(B.shape) == 3:
+        return np.einsum('kij, kjl, kml -> kim', A, B, A)
+    return np.einsum('kij, jl, kml -> kim', A, B, A)
 
 def chi2_item(r, cInv):
     """ rT cInv r """
