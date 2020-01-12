@@ -80,7 +80,7 @@ def print_log(data, niter):
         print_xi(data['xi'][iter][0])
 
 def main():
-    data = np.load('logs/fitres.npz')
+    data = np.load('logs/pfitres.npz')
     plot_ks0_mass(data['xi'][-1])
     plot_chi2(data['chi2'][-1])
     plt.show()

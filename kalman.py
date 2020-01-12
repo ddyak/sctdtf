@@ -79,6 +79,8 @@ def pfit_to_ks(p3pip, p3pim, cov, nit=5, gpit=3, gmit=3):
 
     for idx in range(nit):
         print('Iteration {}'.format(idx+1))
+        Ck = np.zeros((N, ndim, ndim))
+        Ck[:] = 10**3*np.eye(ndim) * eg.UNIT**2
         chi2 = np.zeros(N)
 
         # Apply pi+ momentum measurement constraint #
@@ -109,11 +111,12 @@ def pfit_to_ks(p3pip, p3pim, cov, nit=5, gpit=3, gmit=3):
             GCGTInv = gcgtinv(Gk, Ck)
             Kk = gain_exact(Ck, Gk, GCGTInv)
             xi += xi_upd(Kk, gp)
-        _, _, p4ks, p4pip, p4pim, _, _ = unpack(xi)
+        # _, _, p4ks, p4pip, p4pim, _, _ = unpack(xi)
         Ck = covariance_exact(Ck, Kk, Gk)
         chi2 += et.chi2_item(gp, GCGTInv)
 
         # mass constraint #
+        gm_const = rf.gmass(p4pip, p4pim).reshape(-1, 1)
         for _ in range(gmit):
             _, _, p4ks, p4pip, p4pim, _, _ = unpack(xi)
             gm = rf.gmass(p4pip, p4pim).reshape(-1, 1)
@@ -122,9 +125,9 @@ def pfit_to_ks(p3pip, p3pim, cov, nit=5, gpit=3, gmit=3):
             GCGTInv = gcgtinv(Gk, Ck)
             Kk = gain_exact(Ck, Gk, GCGTInv)
             xi += xi_upd(Kk, gm)
-        _, _, _, p4pip, p4pim, _, _ = unpack(xi)
+        # _, _, _, p4pip, p4pim, _, _ = unpack(xi)
         Ck = covariance_exact(Ck, Kk, Gk)
-        chi2 += et.chi2_item(gm, GCGTInv)
+        chi2 += et.chi2_item(gm_const, GCGTInv)
 
         # write log #
         _, _, p4ks, p4pip, p4pim, _, _ = unpack(xi)
@@ -143,7 +146,7 @@ def main():
     N = 10**3
     (p3pip, p3pim), p3pipGen, p3pimGen = generate(N, cov)
 
-    logs = pfit_to_ks(p3pip, p3pim, cov, nit=10, gpit=3, gmit=3)
+    logs = pfit_to_ks(p3pip, p3pim, cov, nit=10, gpit=5, gmit=5)
     np.savez('logs/pfitres',
         chi2=logs['chi2'],
       chi2v0=logs['chi2v0'],
