@@ -4,6 +4,7 @@
 
 import numpy as np
 import unittest
+import copy
 
 # UNIT = 10**-3
 UNIT = 1
@@ -83,7 +84,7 @@ def measurement_sampler(p3pip, p3pim, cov):
 def generate(N, cov, ptot=None):
     """ Generates N events for a given covariance matrix """
     p3pip, p3pim = ks2pipi(N, ptot)
-    return (measurement_sampler(p3pip, p3pim, cov), p3pip, p3pim)
+    return (measurement_sampler(copy.deepcopy(p3pip), copy.deepcopy(p3pim), cov), p3pip, p3pim)
 
 class TestGenerator(unittest.TestCase):
     N = 10**4
