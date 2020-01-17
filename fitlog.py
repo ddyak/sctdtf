@@ -23,6 +23,9 @@ def plot_params_d0(xi, xi0, p3_ks_pip_gen, p3_ks_pim_gen, p3_phi_pip_gen, p3_phi
                         p3_phi_pip_gen, p3_phi_pim_gen, ephi_gen, phi3,
                         ed0_gen, d03))
 
+    xi = np.hstack((xi[:, 0:10], xi[:,15:25], xi[:,30:34]))
+    xi0 = np.hstack((xi0[:, 0:10], xi0[:,15:25], xi0[:,30:34]))
+
     def augment(xi):
         ks_pip_p = np.sqrt(np.sum(xi[:, 0:3]**2, axis=-1)).reshape(-1, 1)
         ks_pim_p = np.sqrt(np.sum(xi[:, 3:6]**2, axis=-1)).reshape(-1, 1)
@@ -158,7 +161,7 @@ def plot_params_d0(xi, xi0, p3_ks_pip_gen, p3_ks_pim_gen, p3_phi_pip_gen, p3_phi
         plt.xlabel(labels[filenames[i]], fontsize=16)
         plt.tight_layout()
         plt.savefig('fig/{}/fit_{}.png'.format(savedir, filenames[i]))
-    # plt.show()
+    plt.show()
 
 
 def plot_params(xi, xi0, pimgen, pipgen, savedir):
@@ -411,9 +414,9 @@ def print_log(data, niter):
 
 
 def main():
-    for energy in [1]:
+    for energy in [0]:
     # data = np.load('logs/pfitres_{:.3f}_MeV.npz'.format(energy))
-        data = np.load('logs/cascade_pfitres_{:.3f}_MeV.npz'.format(energy))
+        data = np.load('logs/cascade_fitres_{:.3f}_MeV.npz'.format(energy))
     # plot_d0_mass(data['xi'][-1])
     # plot_conservation(data['xi'][-1])
     # plot_pipi_mass(data['xi'][-1])

@@ -30,7 +30,9 @@ def covariance_normal(Cl, Kk, Hk, Rlk):
 
 def covariance_exact(Cl, Kk, Gk):
     """ Covariance update for exact constraints """
-    return et.mtxabat(np.eye(Cl.shape[-1]) - et.mtxab(Kk, Gk), Cl)
+    Rlk = et.mtxabat(Gk, Cl)
+    return Cl - et.mtxab(Kk, 2*et.mtxab(Gk, Cl) - et.mtxabt(Rlk, Kk))    
+    # return et.mtxabat(np.eye(Cl.shape[-1]) - et.mtxab(Kk, Gk), Cl)
 
 def gain_exact(Cl, Gk, cInv):
     """ Gain matrix for exact constraints """
@@ -68,7 +70,7 @@ def cascade_unpack(xi):
             p4_phi_pip, p4_phi_pim, p4phi, e_phi_pip, e_phi_pim, p4d0
 
 
-def apply_meas(Hk, rk, cov, Ck, full=True):
+def apply_meas(Hk, rk, cov, Ck, full=False):
     """ Apply measurement constraint """
     Rlk = predicted_resid_uncert(cov, Hk, Ck)
     RlkInv = np.linalg.inv(Rlk)
@@ -345,11 +347,11 @@ def pfit_to_d0(p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim, cov, nit=5, gpit=3,
 
         # write log #
         _, _, p4ks, _, _, _, _, p4phi, _, _, p4d0 = cascade_unpack(xi)
-        logs['xi'].append(xi.copy())
-        logs['cov'].append(Ck.copy())
+        # logs['xi'].append(xi.copy())
+        # logs['cov'].append(Ck.copy())
         # logs['chi2v0'].append(rf.chi2(p3pip0, p3pim0, p4pip, p4pim, covInv))
-        logs['chi2'].append(chi2)
-        logs['mk'].append(eg.mass(p4ks))
+        # logs['chi2'].append(chi2)
+        # logs['mk'].append(eg.mass(p4ks))
 
     # print('Final Ck\n{}'.format(Ck[0]))
     return logs
@@ -367,24 +369,28 @@ def main():
         # if energy == 0:
             # ptot = np.array([energy, 0, 0])
 
+        # (p3pip, p3pim), p3pipGen, p3pimGen = generate(N, cov, np.array([energy, 0, 0]))
+        # logs = pfit_to_ks(p3pip, p3pim, cov, nit=5, gpit=1, gmit=1)
+
+
         (p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim), \
         p3_ks_pip_gen, p3_ks_pim_gen, p3_phi_pip_gen, p3_phi_pim_gen \
             = generate_cascade(N, cov, ptot=ptot)
     
-        logs = pfit_to_d0(p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim, cov, nit=5, gpit=3, gmit=3)
+        logs = pfit_to_d0(p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim, cov, nit=5, gpit=1, gmit=1)
 
-        np.savez('logs/cascade_pfitres_{:.3f}_MeV'.format(energy),
-                  chi2=logs['chi2'],
-                chi2v0=logs['chi2v0'],
-                    Ck=logs['cov'],
-                    mk=logs['mk'],
-                    xi=logs['xi'],
-         p3_ks_pip_gen=p3_ks_pip_gen,
-         p3_ks_pim_gen=p3_ks_pim_gen,
-        p3_phi_pip_gen=p3_phi_pip_gen,
-        p3_phi_pim_gen=p3_phi_pim_gen,
-                   cov=cov
-        )
+        # np.savez('logs/cascade_pfitres_{:.3f}_MeV'.format(energy),
+        #           chi2=logs['chi2'],
+        #         chi2v0=logs['chi2v0'],
+        #             Ck=logs['cov'],
+        #             mk=logs['mk'],
+        #             xi=logs['xi'],
+        #  p3_ks_pip_gen=p3_ks_pip_gen,
+        #  p3_ks_pim_gen=p3_ks_pim_gen,
+        # p3_phi_pip_gen=p3_phi_pip_gen,
+        # p3_phi_pim_gen=p3_phi_pim_gen,
+        #            cov=cov
+        # )
 
 
     # for energy in np.logspace(0, 3, 5):
