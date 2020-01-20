@@ -4,6 +4,7 @@
 
 import numpy as np
 from scipy.linalg import block_diag
+import pathlib
 
 from event_generator import UNIT, MASS_DICT, p3top4, mass_sq, mass, make_hist
 import eintools as et
@@ -77,14 +78,14 @@ def cascade_gradient(p3_k_pip0, p3_k_pim0, p4_k_pip, p4_k_pim, p4k, lamk,
     ddp_k = +2*lamm_k*p3k + lamp_k - lamp_d
     dlamm_k = gmass(MASS_DICT['K0_S'], p4k)
     dlamep_k = gmomentum(p4_k_pip, p4_k_pim, p4k)
-#####################################################################
+
     dd_phi_p1 = np.dot(p3_phi_pip - p3_phi_pip0, covInv) - lame_phi*p3_phi_pip/e_phi_pip - lamp_phi
     dd_phi_p2 = np.dot(p3_phi_pim - p3_phi_pim0, covInv) - lame_phi*p3_phi_pim/e_phi_pim - lamp_phi
     dde_phi = -2*lamm_phi*ephi  + lame_phi - lame_d
     ddp_phi = +2*lamm_phi*p3phi + lamp_phi - lamp_d
     dlamm_phi = gmass(MASS_DICT['phi'], p4phi)
     dlamep_phi = gmomentum(p4_phi_pip, p4_phi_pim, p4phi)
-####################################################################
+
     dde_d = -2*lamm_d*ed  + lame_d
     ddp_d = +2*lamm_d*p3d + lamp_d
     dlamm_d = gmass(MASS_DICT['D0'], p4d)
@@ -159,24 +160,24 @@ def cascade_hessian(p4_k_pip, p4_k_pim, p4k, lam_k, p4_phi_pip, p4_phi_pim, p4ph
     hess[:, 15:18,  15:18] = covInv + dphess(e_phi_pip, p3overE_phi_pip)
     hess[:, 18:21,  18:21] = covInv + dphess(e_phi_pim, p3overE_phi_pim)
     hess[:, 21:25, 21:25] = 2*np.einsum('ki, ij -> kij', lamm_phi, np.diag([-1, 1, 1 ,1]))
-    hess[:,  25,    21] = hess[:,   21,   25] = -2*ek.ravel()  # dlamm dek
-    hess[:,  25, 22:25] = hess[:,22:25,   25] =  2*p3k         # dlamm dpk
-    hess[:,  26,  15:18] = hess[:, 15:18,   26] = -p3_phi_pip / e_phi_pip  # dp1 dlam_eps
-    hess[:,  26,  18:21] = hess[:, 18:21,   26] = -p3_phi_pim / e_phi_pim  # dp2 dlam_eps
-    hess[:, 26:30, 21:25] = hess[:,21:25,  26:30] =  np.eye(4)     # dek dlam_eps
-    hess[:, 27:30,  15:18] = hess[:, 15:18,  27:30] = -np.eye(3)     # dlam_p dp1
-    hess[:, 27:30,  18:21] = hess[:, 18:21,  27:30] = -np.eye(3)     # dlam_p dp2
+    hess[:,  25,    21] = hess[:,   21,   25] = -2*ek.ravel()  
+    hess[:,  25, 22:25] = hess[:,22:25,   25] =  2*p3k         
+    hess[:,  26,  15:18] = hess[:, 15:18,   26] = -p3_phi_pip / e_phi_pip 
+    hess[:,  26,  18:21] = hess[:, 18:21,   26] = -p3_phi_pim / e_phi_pim 
+    hess[:, 26:30, 21:25] = hess[:,21:25,  26:30] =  np.eye(4)     
+    hess[:, 27:30,  15:18] = hess[:, 15:18,  27:30] = -np.eye(3)   
+    hess[:, 27:30,  18:21] = hess[:, 18:21,  27:30] = -np.eye(3)   
 
     lamm_d, lame_d = lam_d[:, 0].reshape(-1, 1), lam_d[:, 1].reshape(-1, 1)
     (ek, p3k), (_, _) = [(x[:, 0].reshape(-1, 1), x[:, 1:]) for x in [p4d,p4d]]
 
     hess[:, 30:34, 30:34] = 2*np.einsum('ki, ij -> kij', lamm_d, np.diag([-1, 1, 1 ,1]))
     hess[:,   34,     30] = hess[:,     30,   34] = -2*ek.ravel()
-    hess[:,   34,  31:34] = hess[:,  31:34,   34] =  2*p3k         # dlamm dpk
+    hess[:,   34,  31:34] = hess[:,  31:34,   34] =  2*p3k         
 
-    hess[:, 35:39,  30:34] = hess[:, 30:34,  35:39] =  np.eye(4)     # dek dlam_eps
-    hess[:, 35:39,  6:10] = hess[:,   6:10,  35:39] = -np.eye(4)     # dlam_p dp1
-    hess[:, 35:39,  21:25] = hess[:, 21:25,  35:39] = -np.eye(4)     # dlam_p dp2
+    hess[:, 35:39,  30:34] = hess[:, 30:34,  35:39] =  np.eye(4)   
+    hess[:, 35:39,  6:10] = hess[:,   6:10,  35:39] = -np.eye(4)   
+    hess[:, 35:39,  21:25] = hess[:, 21:25,  35:39] = -np.eye(4)   
  
     return 2*hess
 
@@ -244,7 +245,6 @@ def fit_to_d0(p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim, cov, nit=5):
     print('Inverse covariance\n{}'.format(covInv))
     print('N = {}'.format(N))
 
-    # lam = 1*np.ones((N, 5))
     lam_ks = 1*np.ones((N, 5))
     lam_phi = 1*np.ones((N, 5))
     lam_d0 = 1*np.ones((N, 5))
@@ -267,21 +267,17 @@ def fit_to_d0(p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim, cov, nit=5):
 
         p4d0, lam_d0 = xi[:, 30:34], xi[:, 34:39]
         
-        # grad = gradient(p3pip0, p3pim0, p4pip, p4pim, p4ks, covInv, lam)
         grad = cascade_gradient(p3_ks_pip0, p3_ks_pim0, p4_ks_pip, p4_ks_pim, p4ks, lam_ks,
                     p3_phi_pip0, p3_phi_pim0, p4_phi_pip, p4_phi_pim, p4phi, lam_phi, 
                     p4d0, lam_d0, covInv)
 
-        # hess = hessian(p4pip, p4pim, p4ks, covInv, lam)
         hess = cascade_hessian(p4_ks_pip, p4_ks_pim, p4ks, lam_ks, p4_phi_pip, p4_phi_pim, p4phi, lam_phi, p4d0, lam_d0, covInv)
         return (p4_ks_pip, p4_ks_pim, p4_phi_pip, p4_phi_pim, grad, hess)
 
     xi = np.column_stack([p3_ks_pip, p3_ks_pim, p4ks, lam_ks, p3_phi_pip, p3_phi_pim, p4phi, lam_phi, p4d0, lam_d0])
     for iter in range(nit):
         print('Iteration {}'.format(iter))
-        # p4pip, p4pim, grad, hess = calc(xi)
         p4_ks_pip, p4_ks_pim, p4_phi_pip, p4_phi_pim, grad, hess = calc(xi)
-        # save_log(xi, p4pip, p4pim, grad, hess)
         save_log(xi, p4_ks_pip, p4_ks_pim, p4_phi_pip, p4_phi_pim, grad, hess)
         xi -= np.einsum('kij, ki -> kj', np.linalg.inv(hess), grad)
 
@@ -291,58 +287,53 @@ def fit_to_d0(p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim, cov, nit=5):
     return logs
 
 
-
 def main():
     from event_generator import generate, generate_cascade
     cov = np.diag([3,3,5])**2 * UNIT**2
-    N = 10**4
+    N = 10**3
+    is_cascade_decay = True * 0
 
-    ptot = np.array([1000, 0, 0])
+    for energy in [0, 250, 1000]:
+        ptot = np.array([energy, 0, 0])
+        if energy == 0:
+            ptot = None
+  
+        if is_cascade_decay is True:
+            (p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim), \
+            p3_ks_pip_gen, p3_ks_pim_gen, p3_phi_pip_gen, p3_phi_pim_gen \
+                = generate_cascade(N, cov, ptot=ptot)
+            logs = fit_to_d0(p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim, cov, nit=5)
+        
+            pathlib.Path('logs/d_meson/reffit').mkdir(parents=True, exist_ok=True) 
+            np.savez('logs/d_meson/reffit/fitres_{:.1f}MeV'.format(energy),
+                chi2=logs['chi2'],
+                xi=logs['xi'],
+                Ck=logs['cov'],
+                grad=logs['grad'],
+                hess=logs['hess'],
+                det=logs['det'],
+                p3_ks_pip_gen=p3_ks_pip_gen,
+                p3_ks_pim_gen=p3_ks_pim_gen,
+                p3_phi_pip_gen=p3_phi_pip_gen,
+                p3_phi_pim_gen=p3_phi_pim_gen,
+                cov=cov
+            )
+        else:
+            (p3pip, p3pim), p3pipGen, p3pimGen = generate(N, cov, ptot=ptot)
+            logs = fit_to_ks(p3pip, p3pim, cov, nit=5)
 
-    (p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim), \
-    p3_ks_pip_gen, p3_ks_pim_gen, p3_phi_pip_gen, p3_phi_pim_gen \
-        = generate_cascade(N, cov, ptot=ptot)
-
-    logs = fit_to_d0(p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim, cov, nit=5)
-
-    # (p3pip, p3pim), p3pipGen, p3pimGen = generate(N, cov, ptot=ptot)
-
-    # logs = fit_to_ks(p3pip, p3pim, cov, nit=5)
-
-
-    # np.savez('logs/cascade_fitres_{:.3f}_MeV'.format(0),
-    #     chi2=logs['chi2'],
-    #     xi=logs['xi'],
-    #     Ck=logs['cov'],
-    #     grad=logs['grad'],
-    #     hess=logs['hess'],
-    #     det=logs['det'],
-    #     p3_ks_pip_gen=p3_ks_pip_gen,
-    #     p3_ks_pim_gen=p3_ks_pim_gen,
-    #     p3_phi_pip_gen=p3_phi_pip_gen,
-    #     p3_phi_pim_gen=p3_phi_pim_gen,
-    #     cov=cov
-    # )
-
-
-
-    # for energy in np.logspace(0, 3, 5):
-    #     ptot = np.array([energy, 0, 0])
-    #     (p3pip, p3pim), p3pipGen, p3pimGen = generate(N, cov, ptot=ptot)
-
-    #     logs = fit_to_ks(p3pip, p3pim, cov, nit=10)
-    #     np.savez('logs/fitres_{:.3f}_MeV'.format(energy),
-    #         chi2=logs['chi2'],
-    #         xi=logs['xi'],
-    #         Ck=logs['cov'],
-    #         grad=logs['grad'],
-    #         hess=logs['hess'],
-    #         det=logs['det'],
-    #     pipgen=p3pipGen,
-    #     pimgen=p3pimGen,
-    #         cov=cov
-    #     )
-
+            pathlib.Path('logs/kaon/reffit').mkdir(parents=True, exist_ok=True) 
+            np.savez('logs/kaon/reffit/fitres_{:.1f}MeV'.format(energy),
+                chi2=logs['chi2'],
+                xi=logs['xi'],
+                Ck=logs['cov'],
+                grad=logs['grad'],
+                hess=logs['hess'],
+                det=logs['det'],
+            pipgen=p3pipGen,
+            pimgen=p3pimGen,
+                cov=cov
+            )
 
 if __name__ == '__main__':
     main()

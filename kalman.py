@@ -5,6 +5,7 @@ import numpy as np
 import event_generator as eg
 import reffit as rf
 import eintools as et
+import pathlib
 
 def predicted_resid_uncert(Vk, Hk, Cl):
     """ Uncertainty of the predicted residual
@@ -30,9 +31,9 @@ def covariance_normal(Cl, Kk, Hk, Rlk):
 
 def covariance_exact(Cl, Kk, Gk):
     """ Covariance update for exact constraints """
-    Rlk = et.mtxabat(Gk, Cl)
-    return Cl - et.mtxab(Kk, 2*et.mtxab(Gk, Cl) - et.mtxabt(Rlk, Kk))    
-    # return et.mtxabat(np.eye(Cl.shape[-1]) - et.mtxab(Kk, Gk), Cl)
+    # Rlk = et.mtxabat(Gk, Cl)
+    # return Cl - et.mtxab(Kk, 2*et.mtxab(Gk, Cl) - et.mtxabt(Rlk, Kk))    
+    return et.mtxabat(np.eye(Cl.shape[-1]) - et.mtxab(Kk, Gk), Cl)
 
 def gain_exact(Cl, Gk, cInv):
     """ Gain matrix for exact constraints """
@@ -70,7 +71,7 @@ def cascade_unpack(xi):
             p4_phi_pip, p4_phi_pim, p4phi, e_phi_pip, e_phi_pim, p4d0
 
 
-def apply_meas(Hk, rk, cov, Ck, full=False):
+def apply_meas(Hk, rk, cov, Ck, full=True):
     """ Apply measurement constraint """
     Rlk = predicted_resid_uncert(cov, Hk, Ck)
     RlkInv = np.linalg.inv(Rlk)
@@ -162,7 +163,7 @@ def pfit_to_ks(p3pip, p3pim, cov, nit=5, gpit=3, gmit=3):
         _, _, p4ks, p4pip, p4pim, _, _ = unpack(xi)
         logs['xi'].append(xi.copy())
         logs['cov'].append(Ck.copy())
-        logs['chi2v0'].append(rf.chi2(p3pip0, p3pim0, p4pip, p4pim, covInv))
+        # logs['chi2v0'].append(rf.chi2(p3pip0, p3pim0, p4pip, p4pim, covInv))
         logs['chi2'].append(chi2)
         logs['mk'].append(eg.mass(p4ks))
     # print('Final Ck\n{}'.format(Ck[0]))
@@ -237,14 +238,10 @@ def pfit_to_d0(p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim, cov, nit=5, gpit=3,
         p4_ks_pip, p4_ks_pim, p4ks, _, _, _, _, _, _, _, _ = cascade_unpack(xi)
         gp_const = rf.gmomentum(p4_ks_pip, p4_ks_pim, p4ks)
         for _ in range(gpit):
-            #  p3pip, p3pim, p4ks, p4pip, p4pim, epip, epim = unpack(xi)
             p4_ks_pip, p4_ks_pim, p4ks, e_ks_pip, e_ks_pim, _, _, _, _, _, _ = cascade_unpack(xi)
-            # gp = rf.gmomentum(p4pip, p4pim, p4ks)
             gp = rf.gmomentum(p4_ks_pip, p4_ks_pim, p4ks)
             Gk = np.zeros((N, 4, ndim))
             Gk[:, 0, :3] = -p4_ks_pip[:, 1:4] / e_ks_pip
-            # Gk[:, 0, :3] = -p3pip/epip
-            # Gk[:, 0,3:6] = -p3pim/epim
             Gk[:, 0,3:6] = -p4_ks_pim[:, 1:4] / e_ks_pim
             Gk[:, 1:, :3] = Gk[:, 1:, 3:6] = -np.eye(3)
             Gk[:, :, 6:10] = np.eye(4)
@@ -260,11 +257,8 @@ def pfit_to_d0(p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim, cov, nit=5, gpit=3,
         gp_const = rf.gmomentum(p4_phi_pip, p4_phi_pim, p4phi)
         for _ in range(gpit):
             _, _, _, _, _, p4_phi_pip, p4_phi_pim, p4phi, e_phi_pip, e_phi_pim, p4d0 = cascade_unpack(xi)
-            # gp = rf.gmomentum(p4pip, p4pim, p4ks)
             gp = rf.gmomentum(p4_phi_pip, p4_phi_pim, p4phi)
             Gk = np.zeros((N, 4, ndim))
-            # Gk[:, 0, 10:13] = -p3pip/epip
-            # Gk[:, 0, 13:16] = -p3pim/epim
             Gk[:, 0, 10:13] = -p4_phi_pip[:, 1:4] / e_phi_pip
             Gk[:, 0, 13:16] = -p4_phi_pim[:, 1:4] / e_phi_pim
             Gk[:, 1:,10:13] = Gk[:, 1:, 13:16] = -np.eye(3)
@@ -280,12 +274,8 @@ def pfit_to_d0(p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim, cov, nit=5, gpit=3,
         gp_const = rf.gmomentum(p4ks, p4phi, p4d0)
         for _ in range(gpit):
             _, _, p4ks, _, _, _, _, p4phi, _, _, p4d0 = cascade_unpack(xi)
-            # gp = rf.gmomentum(p4pip, p4pim, p4ks)
             gp = rf.gmomentum(p4ks, p4phi, p4d0)
             Gk = np.zeros((N, 4, ndim))
-            # Gk[:, 0:, :3] = -p3pip/epip
-            # Gk[:, 0,3:6] = -p3pim/epim
-            # Gk[:, 1:, :3] = Gk[:, 1:, 3:6] = -np.eye(3)
             Gk[:, :, 6:10] = -np.eye(4)
             Gk[:, :, 16:20] = -np.eye(4)
             Gk[:, :, 20:] = np.eye(4)
@@ -294,8 +284,6 @@ def pfit_to_d0(p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim, cov, nit=5, gpit=3,
             xi += xi_upd(Kk, gp)
         Ck = covariance_exact(Ck, Kk, Gk)
         chi2 += et.chi2_item(gp_const, GCGTInv)
-
-#=================================================================================
 
         def gmass(mass, p4):
             return mass**2 - rf.mass_sq(p4)
@@ -334,7 +322,6 @@ def pfit_to_d0(p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim, cov, nit=5, gpit=3,
         for _ in range(gmit):
             print('Mass iteration {}'.format(_ + 1))
             _, _, p4ks, _, _, _, _, p4phi, _, _, p4d0 = cascade_unpack(xi)
-            # gm = rf.gmass(p4pip, p4pim).reshape(-1, 1)
             gm = gmass(md0, p4d0).reshape(-1, 1)
             Gk = np.zeros((N, 1, ndim))
             Gk[:,0,20:24] = 2 * np.einsum('ki, i -> ki', p4d0, np.array([-1, 1, 1, 1]))
@@ -347,11 +334,11 @@ def pfit_to_d0(p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim, cov, nit=5, gpit=3,
 
         # write log #
         _, _, p4ks, _, _, _, _, p4phi, _, _, p4d0 = cascade_unpack(xi)
-        # logs['xi'].append(xi.copy())
-        # logs['cov'].append(Ck.copy())
+        logs['xi'].append(xi.copy())
+        logs['cov'].append(Ck.copy())
         # logs['chi2v0'].append(rf.chi2(p3pip0, p3pim0, p4pip, p4pim, covInv))
-        # logs['chi2'].append(chi2)
-        # logs['mk'].append(eg.mass(p4ks))
+        logs['chi2'].append(chi2)
+        logs['mk'].append(eg.mass(p4ks))
 
     # print('Final Ck\n{}'.format(Ck[0]))
     return logs
@@ -361,51 +348,50 @@ def main():
     from event_generator import generate, generate_cascade
     # et.VERB = True
     cov = np.diag([3,3,5])**2 * eg.UNIT**2
-    N = 10**4
+    N = 10**3
 
-    for energy in [1]:#, 250, 1000]:
-        # ptot = None
-        ptot = np.array([1000, 0, 0])
-        # if energy == 0:
-            # ptot = np.array([energy, 0, 0])
+    is_cascade_decay = True * 0
 
-        # (p3pip, p3pim), p3pipGen, p3pimGen = generate(N, cov, np.array([energy, 0, 0]))
-        # logs = pfit_to_ks(p3pip, p3pim, cov, nit=5, gpit=1, gmit=1)
+    for energy in [0, 250, 1000]:
+        ptot = np.array([energy, 0, 0])
+        if energy == 0:
+            ptot = None
+  
+        if is_cascade_decay is True:
+            (p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim), \
+            p3_ks_pip_gen, p3_ks_pim_gen, p3_phi_pip_gen, p3_phi_pim_gen \
+                = generate_cascade(N, cov, ptot=ptot)
 
+            logs = pfit_to_d0(p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim, cov, nit=5, gpit=1, gmit=1)
 
-        (p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim), \
-        p3_ks_pip_gen, p3_ks_pim_gen, p3_phi_pip_gen, p3_phi_pim_gen \
-            = generate_cascade(N, cov, ptot=ptot)
-    
-        logs = pfit_to_d0(p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim, cov, nit=5, gpit=1, gmit=1)
+            pathlib.Path('logs/d_meson/kalman').mkdir(parents=True, exist_ok=True) 
+            np.savez('logs/d_meson/kalman/fitres_{:.1f}MeV'.format(energy),
+                        chi2=logs['chi2'],
+                    chi2v0=logs['chi2v0'],
+                        Ck=logs['cov'],
+                        mk=logs['mk'],
+                        xi=logs['xi'],
+                p3_ks_pip_gen=p3_ks_pip_gen,
+                p3_ks_pim_gen=p3_ks_pim_gen,
+            p3_phi_pip_gen=p3_phi_pip_gen,
+            p3_phi_pim_gen=p3_phi_pim_gen,
+                        cov=cov
+            )
+        else:
+            (p3pip, p3pim), p3pipGen, p3pimGen = generate(N, cov, ptot=ptot)
+            logs = pfit_to_ks(p3pip, p3pim, cov, nit=5, gpit=1, gmit=1)
 
-        # np.savez('logs/cascade_pfitres_{:.3f}_MeV'.format(energy),
-        #           chi2=logs['chi2'],
-        #         chi2v0=logs['chi2v0'],
-        #             Ck=logs['cov'],
-        #             mk=logs['mk'],
-        #             xi=logs['xi'],
-        #  p3_ks_pip_gen=p3_ks_pip_gen,
-        #  p3_ks_pim_gen=p3_ks_pim_gen,
-        # p3_phi_pip_gen=p3_phi_pip_gen,
-        # p3_phi_pim_gen=p3_phi_pim_gen,
-        #            cov=cov
-        # )
-
-
-    # for energy in np.logspace(0, 3, 5):
-    #     (p3pip, p3pim), p3pipGen, p3pimGen = generate(N, cov, np.array([energy, 0, 0]))
-    #     logs = pfit_to_ks(p3pip, p3pim, cov, nit=5, gpit=3, gmit=3)
-    #     np.savez('logs/pfitres_{:.3f}_MeV'.format(energy),
-    #         chi2=logs['chi2'],
-    #     chi2v0=logs['chi2v0'],
-    #         Ck=logs['cov'],
-    #         mk=logs['mk'],
-    #         xi=logs['xi'],
-    #     pipgen=p3pipGen,
-    #     pimgen=p3pimGen,
-    #         cov=cov
-    #     )
+            pathlib.Path('logs/kaon/kalman').mkdir(parents=True, exist_ok=True) 
+            np.savez('logs/kaon/kalman/fitres_{:.1f}MeV'.format(energy),
+                chi2=logs['chi2'],
+            chi2v0=logs['chi2v0'],
+                Ck=logs['cov'],
+                mk=logs['mk'],
+                xi=logs['xi'],
+            pipgen=p3pipGen,
+            pimgen=p3pimGen,
+                cov=cov
+            )
 
 if __name__ == '__main__':
     main()

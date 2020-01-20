@@ -5,6 +5,7 @@
 import numpy as np
 import unittest
 import copy
+import pathlib
 
 # UNIT = 10**-3
 UNIT = 1
@@ -72,14 +73,8 @@ def ks2pipi(N, pk=None):
 
 def decay_to_two(mmother, md1, md2, pk=None):
     """ Generator of the decay A -> B C """
-    # mmother, mphi, mks, mpi = [MASS_DICT[key] for key in ['D0', 'phi' 'K0_S', 'pi+']]
-
     e_daughter1 = (mmother**2 + md1**2 - md2**2) / (2 * mmother)
-    # mnp.sqrt(pks**2 + mks**2)
-    # pks = np.sqrt((md0**2 - mphi**2 - mks**2) / 2)
     p_daughter = np.sqrt(e_daughter1**2 - md1**2)
-    # p_daughter = np.sqrt((mmother**2 - md1**2 - md2**2) / 2)
-    # e_daughter1 = np.sqrt(p_daughter**2 + md1**2)
     costh = 2.*np.random.rand(pk.shape[0]) - 1
     phi = 2.*np.random.rand(pk.shape[0])*np.pi
     sinth = np.sqrt(1. - costh**2)
@@ -93,19 +88,11 @@ def decay_to_two(mmother, md1, md2, pk=None):
         p4daughter2[:, 0] = mmother - e_daughter1
         p4daughter1[:, 1:], p4daughter2[:, 1:] = p3daughter1, -p3daughter1
 
-        # print(pk.reshape(-1, 3, 1))
-        # print('==================')
-        # print(energy(mmother, pk)[0])
-
         bv = -(pk.reshape(-1, 3, 1) / energy(mmother, pk)[0]).T[0].T
-        # bv = -(pk.reshape(-1, 3, 1) / energy(mmother, pk)).T[0].T
-        # print(bv)
         p4daughter1 = np.array([lorentz_boost(np.array(
             [p4daughter1[idx]]), bv[idx].reshape(1, -1)) for idx in range(bv.shape[0])])
         p4daughter2 = np.array([lorentz_boost(np.array(
             [p4daughter2[idx]]), bv[idx].reshape(1, -1)) for idx in range(bv.shape[0])])
-        # p4daughter2 = np.array([lorentz_boost(p4daughter2, b.reshape(1, -1)) for b in bv])
-        # p4daughter1 = np.array([lorentz_boost(p4daughter1, b.reshape(1, -1)) for b in bv])
         p4daughter1 = p4daughter1.reshape(-1, 4)
         p4daughter2 = p4daughter2.reshape(-1, 4)
         return p4daughter1[:, 1:], p4daughter2[:, 1:]
@@ -119,8 +106,6 @@ def d0_to_ks_phi(N, pk=None):
     md0, mphi, mks, mpi = [MASS_DICT[key]
                            for key in ['D0', 'phi', 'K0_S', 'pi+']]
     eks = (md0**2 + mks**2 - mphi**2) / (2 * md0)
-    # mnp.sqrt(pks**2 + mks**2)
-    # pks = np.sqrt((md0**2 - mphi**2 - mks**2) / 2)
     pks = np.sqrt(eks**2 - mks**2)
     costh = 2.*np.random.rand(N) - 1
     phi = 2.*np.random.rand(N)*np.pi
@@ -135,8 +120,6 @@ def d0_to_ks_phi(N, pk=None):
         p4ks[:, 1:], p4phi[:, 1:] = p3ks, -p3ks
         bv = -(pk.reshape(-1, 1) / energy(md0, pk)).T
 
-#     (p3_ks_pip, p3_ks_pim), (p3_phi_pip, p3_phi_pim) = d0_to_ks_phi(N, ptot)
-
         (p3_ks_pip, p3_ks_pim), (p3_phi_pip, p3_phi_pim) = decay_to_two(mks, mpi, mpi, pk=p4ks[:, 1:]), decay_to_two(mphi, mpi, mpi, pk=p4phi[:, 1:])
 
         p4_ks_pip = p3top4(p3_ks_pip, MASS_DICT['pi+'])
@@ -144,23 +127,11 @@ def d0_to_ks_phi(N, pk=None):
         p4_phi_pip = p3top4(p3_phi_pip, MASS_DICT['pi+'])
         p4_phi_pim = p3top4(p3_phi_pim, MASS_DICT['pi+'])
 
-        # print(p4_ks_pip + p4_ks_pim + p4_phi_pip + p4_phi_pim)
-        # print(np.sqrt(np.sum((p4_ks_pip + p4_ks_pim + p4_phi_pip + p4_phi_pim)[:, 1:]**2, axis=1)))
-
         p4_ks_pip, p4_ks_pim, p4_phi_pip, p4_phi_pim = [lorentz_boost(x, bv) for x in [p4_ks_pip, p4_ks_pim, p4_phi_pip, p4_phi_pim]]
-
-        # p4ks, p4phi = [lorentz_boost(x, bv) for x in [p4ks, p4phi]]
-        # return decay_to_two(mks, mpi, mpi, pk=p4ks[:, 1:]), decay_to_two(mphi, mpi, mpi, pk=-p4phi[:, 1:])
-        # return (p4ks[:, 1:], p4phi[:, 1:])
-
-        # print(p4_ks_pip + p4_ks_pim + p4_phi_pip + p4_phi_pim)
-        # print(np.sqrt(np.sum((p4_ks_pip + p4_ks_pim + p4_phi_pip + p4_phi_pim)[:, 1:]**2, axis=1)))
 
         return (p4_ks_pip[:, 1:], p4_ks_pim[:, 1:]), (p4_phi_pip[:, 1:], p4_phi_pim[:, 1:])
 
     (a, b), (c, d) = decay_to_two(mks, mpi, mpi, pk=p3ks), decay_to_two(mphi, mpi, mpi, pk=-p3ks)
-
-    # print(np.sqrt(np.sum((a+b+c+d)[:, 1:]**2, axis=1)))
 
     return decay_to_two(mks, mpi, mpi, pk=p3ks), decay_to_two(mphi, mpi, mpi, pk=-p3ks)
 
@@ -242,10 +213,12 @@ def resolution_plot():
     from matplotlib.ticker import MultipleLocator
     mpi = MASS_DICT['pi+']
     cov = np.diag([3, 3, 5])**2
-    N = 10**5
+    N = 10**4
     print(generate(N, cov))
     p4pip, p4pim = [p3top4(p, mpi) for p in generate(N, cov)[0]]
     x, bins, e = make_hist(mass(p4pip + p4pim))
+
+    pathlib.Path('fig/kaon').mkdir(parents=True, exist_ok=True) 
 
     plt.figure(figsize=(6, 5))
     plt.errorbar(x, bins, e, linestyle='none', marker='.', markersize=4)
@@ -253,7 +226,7 @@ def resolution_plot():
     plt.grid(which='both')
     plt.xlabel(r'$m(\pi^+\pi^-)$ (MeV)', fontsize=16)
     plt.tight_layout()
-    plt.savefig('mpipi.pdf')
+    plt.savefig('fig/kaon/mpipi.pdf')
     plt.show()
 
 
@@ -262,19 +235,29 @@ def cascade_resolution_plot():
     from matplotlib.ticker import MultipleLocator
     mpi = MASS_DICT['pi+']
     cov = np.diag([3, 3, 5])**2
-    N = 10**5
+    N = 10**4
     p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim = [
         p3top4(p, mpi) for p in generate_cascade(N, cov)[0]]
-    # x, bins, e = make_hist(mass(p3_ks_pip + p3_ks_pim + p3_phi_pip + p3_phi_pim))
-    # x, bins, e = make_hist(mass(p3_ks_pip + p3_ks_pim))
-    x, bins, e = make_hist(mass(p3_phi_pip + p3_phi_pim))
-    plt.figure(figsize=(6, 5))
-    plt.errorbar(x, bins, e, linestyle='none', marker='.', markersize=4)
-    # plt.minorticks_on()
-    plt.grid(which='both')
-    plt.xlabel(r'$m(\phi)$ (MeV)', fontsize=16)
-    plt.tight_layout()
-    plt.savefig('mphi.pdf')
+    
+    ks = p3_ks_pip + p3_ks_pim
+    phi = p3_phi_pip + p3_phi_pim
+    d = ks + phi
+
+    particles = {"ks":ks, "phi":phi, "d":d}
+    xlabels = {"ks":r'$m(K_S^0)$ (MeV)', "phi":r'$m(\phi)$ (MeV)', "d":r'$m(D^0)$ (MeV)'}
+    filenames = {"ks":"mks.pdf", "phi":"mphi.pdf", "d":"md.pdf"}
+
+    pathlib.Path('fig/d_meson').mkdir(parents=True, exist_ok=True) 
+
+    for particle in ["ks", "phi", "d"]:
+        x, bins, e = make_hist(mass(particles[particle]))
+        plt.figure(figsize=(6, 5))
+        plt.errorbar(x, bins, e, linestyle='none', marker='.', markersize=4)
+        plt.minorticks_on()
+        plt.grid(which='both')
+        plt.xlabel(xlabels[particle], fontsize=16)
+        plt.tight_layout()
+        plt.savefig('fig/d_meson/' + filenames[particle])
     plt.show()
 
 
@@ -282,8 +265,10 @@ if __name__ == '__main__':
     import sys
     if len(sys.argv) == 2 and sys.argv[1] == 'test':
         unittest.main()
-    # resolution_plot()
-    cascade_resolution_plot()
-    # cov = np.diag([3,3,5])**2
-    # print(generate_cascade(1, cov))
-    # print(generate(1, cov))
+    
+    is_cascade_decay = True
+    
+    if is_cascade_decay is True:
+        cascade_resolution_plot()
+    else: 
+        resolution_plot()
