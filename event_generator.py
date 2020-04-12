@@ -209,8 +209,18 @@ class TestGenerator(unittest.TestCase):
 
 
 def resolution_plot():
+    import matplotlib
+    matplotlib.use("pgf")
+    matplotlib.rcParams.update({
+        "pgf.texsystem": "pdflatex",
+        'font.family': 'serif',
+        'text.usetex': True,
+        'pgf.rcfonts': False,
+    })
+
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MultipleLocator
+
     mpi = MASS_DICT['pi+']
     cov = np.diag([3, 3, 5])**2
     N = 10**4
@@ -220,13 +230,14 @@ def resolution_plot():
 
     pathlib.Path('fig/kaon').mkdir(parents=True, exist_ok=True) 
 
-    plt.figure(figsize=(6, 5))
+    plt.figure(figsize=(4, 3))
+    # plt.figure(figsize=(6, 5))
     plt.errorbar(x, bins, e, linestyle='none', marker='.', markersize=4)
-    plt.minorticks_on()
+    # plt.minorticks_on()
     plt.grid(which='both')
     plt.xlabel(r'$m(\pi^+\pi^-)$ (MeV)', fontsize=16)
     plt.tight_layout()
-    plt.savefig('fig/kaon/mpipi.pdf')
+    plt.savefig('fig/kaon/mpipi.pgf')
     plt.show()
 
 
@@ -266,7 +277,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 2 and sys.argv[1] == 'test':
         unittest.main()
     
-    is_cascade_decay = True
+    is_cascade_decay = False
     
     if is_cascade_decay is True:
         cascade_resolution_plot()

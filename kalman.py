@@ -348,11 +348,13 @@ def main():
     from event_generator import generate, generate_cascade
     # et.VERB = True
     cov = np.diag([3,3,5])**2 * eg.UNIT**2
-    N = 10**3
+    N = 10**4
 
-    is_cascade_decay = True * 0
+    is_cascade_decay = False
+    energies = [250]
+    # energies = [0, 250, 1000]
 
-    for energy in [0, 250, 1000]:
+    for energy in energies:
         ptot = np.array([energy, 0, 0])
         if energy == 0:
             ptot = None
@@ -362,7 +364,8 @@ def main():
             p3_ks_pip_gen, p3_ks_pim_gen, p3_phi_pip_gen, p3_phi_pim_gen \
                 = generate_cascade(N, cov, ptot=ptot)
 
-            logs = pfit_to_d0(p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim, cov, nit=5, gpit=1, gmit=1)
+            logs = pfit_to_d0(p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim, cov, 
+            nit=5, gpit=2, gmit=2)
 
             pathlib.Path('logs/d_meson/kalman').mkdir(parents=True, exist_ok=True) 
             np.savez('logs/d_meson/kalman/fitres_{:.1f}MeV'.format(energy),
@@ -379,7 +382,7 @@ def main():
             )
         else:
             (p3pip, p3pim), p3pipGen, p3pimGen = generate(N, cov, ptot=ptot)
-            logs = pfit_to_ks(p3pip, p3pim, cov, nit=5, gpit=1, gmit=1)
+            logs = pfit_to_ks(p3pip, p3pim, cov, nit=5, gpit=3, gmit=3)
 
             pathlib.Path('logs/kaon/kalman').mkdir(parents=True, exist_ok=True) 
             np.savez('logs/kaon/kalman/fitres_{:.1f}MeV'.format(energy),

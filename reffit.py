@@ -290,10 +290,10 @@ def fit_to_d0(p3_ks_pip, p3_ks_pim, p3_phi_pip, p3_phi_pim, cov, nit=5):
 def main():
     from event_generator import generate, generate_cascade
     cov = np.diag([3,3,5])**2 * UNIT**2
-    N = 10**3
-    is_cascade_decay = True * 0
+    N = 10**4
+    is_cascade_decay = True
 
-    for energy in [0, 250, 1000]:
+    for energy in [250]:#[0, 250, 1000]:
         ptot = np.array([energy, 0, 0])
         if energy == 0:
             ptot = None
